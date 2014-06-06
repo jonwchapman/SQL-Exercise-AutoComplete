@@ -60,13 +60,17 @@
 					this.value=this.value.replace(/\s/gi, '~s~ ');
 					this.value=this.value.replace(/\./gi, "~p~.");
 					//this.value=this.value.replace(/\n/,"~n~ ");
+
 					// split on special char
 					var terms = split( this.value );
+					
 					// remove the current input
 					terms.pop();
+					
 					// add the selected item
 					terms.push( ui.item.value );
 					terms.push("");
+					
 					// join the whole mess
 					this.value = terms.join("");
 					

@@ -1,3 +1,16 @@
+
+
+To decide whether the Autocomplete function is called in the first place:
+
+1. On each keypress, split text into array and look for array elements > 3 char.length & Caret position matches.
+2. If condition exists, Invoke jquery Autocomplete, except that the insert happen at the location of the caret. 
+
+
+
+
+
+Within the "Select" portion of Jquery Autocomplete:
+
 1. Add special markers to delimit splits.
 2. Split on said markers into an array.
 3. Remove the value that is being evaluated for autocomplete. (Initially, for phase 1 this will be the last item in the array.)

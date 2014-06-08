@@ -7,31 +7,183 @@
 	<script src="js/jquery-1.10.2.js"></script>
 	<script src="js/jquery-ui-1.10.4.custom.js"></script>
  <script>
-	$(function() {
-		var charMarker = 0;
-		var availableTags = [
-			"SELECT",
-			"tblEmployee",
-			"tblJob",
-			"tblBosses",
-			"tblOrders",
-			"Company",
-			"Invoice",
-			"WHERE", 
-			"FROM",
-			"IN"
-		];
-		
-		function split( val ) {
-			return val.split(  /,\s*|\.|\s/ ); 
-		}
-		
-		function extractLast( term ) {
-			return split( term ).pop();
-		}
-		
-		$( "#tags" )
-		  // don't navigate away from the field on tab when selecting an item
+     var log = "";
+     var querySoFar = "";
+     var curToken = "";
+     var curTokenStart = 0;
+     var curTokenEnd = 0;
+
+     var dboCharRegEx = new RegExp("[A-Za-z0-9_-]");
+     var dboRegEx = new RegExp("[A-Za-z0-9_-][A-Za-z0-9_-]*");
+     var fromRegEx = new RegExp("[ ]*[Ff][Rr][Oo][Mm][ ]*");
+     var selectRegEx = new RegExp("[ ]*[Ss][Ee][Ll][Ee][Cc][Tt][ ]*");
+     var joinRegEx = new RegExp("[ ]*[Jj][Oo][Ii][Nn][ ]*");
+     var whereRegEx = new RegExp("[ ]*[Ww][Hh][Ee][Rr][Ee][ ]*");
+     var commaRegEx = new RegExp("[ ]*,[ ]*");
+     var periodRegEx = new RegExp("[ ]*[.][ ]*");
+     
+     var tokensBeforeColumn = [periodRegEx];
+     var tokensBeforeTable = [commaRegEx,selectRegEx,fromRegEx,whereRegEx,joinRegEx];
+     var tokensBeforePeriod = [dboCharRegEx];
+     
+     //TODO: inject values based on the exercise
+     var dboTokens = {};
+     dboTokens["tblEmployee"] = ["Emp_ID", "Emp_FName", "Emp_LName"];
+     dboTokens["tblOrder"] = ["Ord_ID", "Ord_Desc", "Ord_DtTm"];
+     dboTokens["TABLES"] = ["tblEmployee","tblOrder"];
+     //ENDTODO
+
+     function alertLog(msg) {
+         log = log + msg + "\n";
+     }
+     
+     //TODO: use cursor plugin
+     function findChange(prevQuery, query) {
+         prevQuery = String(prevQuery);
+         query = String(query);
+
+         var cursorPos=0;
+         for (; cursorPos < prevQuery.length; cursorPos++) {
+             if (prevQuery.charAt(cursorPos) != query.charAt(cursorPos)) {
+                 break;
+             }
+         }
+         if (prevQuery.length < query.length) {
+             cursorPos++;
+         }
+         return cursorPos;
+     }
+     //ENDTODO
+
+     function getDboTokenStart(query, cursorPos) {
+         query = String(query);
+         cursorPos = Number(cursorPos);
+
+         var start = cursorPos - 1;
+         for (; start >= 0; start--) {
+             var char = query.charAt(start);
+             if (char.search(dboCharRegEx) < 0) {
+                 break;
+             }
+         }
+         start++;
+         return (start);
+     }
+
+     function getDboTokenEnd(query, cursorPos) {
+         query = String(query);
+         cursorPos = Number(cursorPos);
+
+         var end = cursorPos;
+         for (; end < query.length; end++) {
+             var char = query.charAt(end);
+             if (char.search(dboCharRegEx) < 0) {
+                 break;
+             }
+         }
+         return end;
+     }
+
+     function checkGetPrecedingToken(query, nextTokenStart, regex) {
+         query = String(query);
+         nextTokenStart = Number(nextTokenStart);
+
+         alertLog("checkGetPrecedingToken:01:" + query + ":" + nextTokenStart + ":" + regex + ":");//TODO:remove from final product
+         if (regex == commaRegEx || regex == periodRegEx) {
+             alertLog("checkGetPrecedingToken:02:");//TODO:remove from final product
+             return checkGetPrecedingCharToken(query, nextTokenStart, regex);
+         }
+         alertLog("checkGetPrecedingToken:03:");//TODO:remove from final product
+         return checkGetPrecedingWordToken(query, nextTokenStart, regex);
+     }
+
+     function checkGetPrecedingWordToken(query, nextTokenStart, regex) {
+         query = String(query);
+         nextTokenStart = Number(nextTokenStart);
+
+         query = query.substring(0, nextTokenStart).trim();
+         alertLog("checkGetPrecedingWordToken:01:" + query + ":");//TODO:remove from final product
+         var tmpToken = query.substring(getDboTokenStart(query, query.length), query.length).trim();
+         alertLog("checkGetPrecedingWordToken:02:" + tmpToken + ":" + regex + ":" + tmpToken.search(regex) + "");//TODO:remove from final product
+         if (tmpToken.search(regex) >= 0) {
+             alertLog("checkGetPrecedingWordToken:03:");//TODO:remove from final product
+             return tmpToken;
+         }
+         alertLog("checkGetPrecedingWordToken:04:");//TODO:remove from final product
+         return "";
+     }
+
+     function checkGetPrecedingCharToken(query, nextTokenStart, regex){
+         query = String(query);
+         nextTokenStart = Number(nextTokenStart);
+
+         query = query.substring(0, nextTokenStart).trim();
+         alertLog("checkGetPrecedingCharToken:01:" + query + ":");//TODO:remove from final product
+         var char = query.charAt((query.length - 1));
+         alertLog("checkGetPrecedingCharToken:02:" + char + ":" + regex + ":");//TODO:remove from final product
+         if (char.search(regex) >= 0) {
+             alertLog("checkGetPrecedingCharToken:03:");//TODO:remove from final product
+             return char;
+         }
+         alertLog("checkGetPrecedingCharToken:04:");//TODO:remove from final product
+         return "";
+     }
+
+     function getApplicableDbos(query, cursorPos){
+         query = String(query);
+         cursorPos = Number(cursorPos); 
+
+         var dboTokenStart = getDboTokenStart(query, cursorPos);
+         var dboTokenEnd = getDboTokenEnd(query, cursorPos);
+         var dboToken = "";
+         if(dboTokenStart < dboTokenEnd){
+             dboToken = query.substring(dboTokenStart,dboTokenEnd);
+         }
+         curToken = dboToken;
+         curTokenStart = dboTokenStart;
+         curTokenEnd = dboTokenEnd;
+         alertLog("getApplicableDbos:01:" + query + ":" + cursorPos + ":" + dboTokenStart + ":" + dboTokenEnd + ":" + dboToken + ":");//TODO:remove from final product
+         var prevToken = "";
+         var i = 0;
+         //check if current token is a column
+         for (i = 0; i < tokensBeforeColumn.length; i++) {
+             query = query.substring(0, dboTokenStart).trim();
+             alertLog("getApplicableDbos:looking for period:01:");//TODO:remove from final product
+             prevToken = checkGetPrecedingToken(query, query.length, tokensBeforeColumn[i]);
+             alertLog("getApplicableDbos:looking for period:02:" + prevToken + ":");//TODO:remove from final product
+             if (prevToken != "") {
+                 if (prevToken.search(periodRegEx) >= 0) {
+                     alertLog("getApplicableDbos:looking for period:looking for table:01:");//TODO:remove from final product
+                     query = query.substring(0, (query.length - prevToken.length));
+                     alertLog("getApplicableDbos:looking for period:looking for table:02:" + query + ":");//TODO:remove from final product
+                     for (i = 0; i < tokensBeforePeriod.length; i++){
+                         prevToken = checkGetPrecedingToken(query, dboTokenStart, tokensBeforePeriod[i]).trim();
+                         if (prevToken != ""){
+                             if (prevToken.search(dboRegEx) >= 0){
+                                 if(dboTokens[prevToken] != null){
+                                     return dboTokens[prevToken];
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }
+         }
+         //check if current token is a table
+         alertLog("getApplicableDbos:looking for table:01:" + query + ":");
+         for (i = 0; i < tokensBeforeTable.length; i++){
+             prevToken = checkGetPrecedingToken(query, dboTokenStart, tokensBeforeTable[i]).trim();
+             if(prevToken != ""){
+                 return dboTokens["TABLES"];
+             }
+         }
+         return [];
+     }
+
+     $(function () {
+
+         $("#mainTextArea")
+             // don't navigate away from the field on tab when selecting an item
 			.bind( "keydown", function( event ) {
 				if ( (event.keyCode === $.ui.keyCode.TAB || event.keyCode === $.ui.keyCode.ENTER) && $( this ).data( "ui-autocomplete" ).menu.active ) {
 				event.preventDefault();
@@ -40,12 +192,18 @@
 			  
 			.autocomplete({
 				
-				minLength: 3,
+				minLength: 1,
 				
-				source: function( request, response ) {
-				// delegate back to autocomplete, but extract the last term
-				response( $.ui.autocomplete.filter(
-				availableTags, extractLast( request.term ) ) );
+				source: function (request, response) {
+				    var cursorPos = findChange(querySoFar, request.term);
+				    querySoFar = request.term;
+				    var availableTags = getApplicableDbos(querySoFar, cursorPos);
+				    alertLog("source: " + availableTags);//TODO:remove from final product
+				    //alert(log);//TODO:remove from final product
+				    log = "";
+				    // delegate back to autocomplete, but extract the last term
+				    //response($.ui.autocomplete.filter(["SELECT"], "S"));
+				    response($.ui.autocomplete.filter(availableTags, curToken));
 				},
 				
 				focus: function() {
@@ -53,32 +211,13 @@
 				return false;
 				},
 				
-				select: function( event, ui ) {
-				
-					// add markers before special char
-					this.value=this.value.replace(/\, /gi, '~c~,');
-					this.value=this.value.replace(/\s/gi, '~s~ ');
-					this.value=this.value.replace(/\./gi, "~p~.");
-					//this.value=this.value.replace(/\n/,"~n~ ");
+				select: function (event, ui) {
 
-					// split on special char
-					var terms = split( this.value );
-					
-					// remove the current input
-					terms.pop();
-					
-					// add the selected item
-					terms.push( ui.item.value );
-					terms.push("");
-					
-					// join the whole mess
-					this.value = terms.join("");
-					
-					// remove and replace markers with special char 
-					this.value=this.value.replace("~c~", ", ");
-					this.value=this.value.replace("~s~", " ");
-					this.value=this.value.replace("~p~", ".");
-				return false;
+				    var querySoFarPrefix = querySoFar.substring(0, curTokenStart);
+				    var querySoFarSuffix = querySoFar.substring(curTokenEnd, querySoFar.length);
+				    querySoFar = querySoFarPrefix + ui.item.value + querySoFarSuffix;
+				    this.value = querySoFar;
+				    return false;
 				}
 			});
 		});
@@ -88,8 +227,8 @@
 <body>
  
 <div class="ui-widget">
-  <label for="tags"> </label>
-<textarea id ="tags" rows="10" cols="100"></textarea>
+  <label for="mainTextArea"> </label>
+<textarea id ="mainTextArea" rows="10" cols="100"></textarea>
   
 </div>
  

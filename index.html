@@ -6,6 +6,7 @@
 	<link href="css/vader/jquery-ui-1.10.4.custom.css" rel="stylesheet">
 	<script src="js/jquery-1.10.2.js"></script>
 	<script src="js/jquery-ui-1.10.4.custom.js"></script>
+    <script src="js/jquery.caret-1.5.2.js"></script>
  <script>
      var log = "";
      var querySoFar = "";
@@ -200,7 +201,7 @@
 				    var availableTags = getApplicableDbos(querySoFar, cursorPos);
 				    alertLog("source: " + availableTags);//TODO:remove from final product
 				    //alert(log);//TODO:remove from final product
-				    log = "";
+				    log = "";//TODO:remove from final product
 				    // delegate back to autocomplete, but extract the last term
 				    //response($.ui.autocomplete.filter(["SELECT"], "S"));
 				    response($.ui.autocomplete.filter(availableTags, curToken));
@@ -217,6 +218,9 @@
 				    var querySoFarSuffix = querySoFar.substring(curTokenEnd, querySoFar.length);
 				    querySoFar = querySoFarPrefix + ui.item.value + querySoFarSuffix;
 				    this.value = querySoFar;
+				    var curPosNew = (querySoFarPrefix + ui.item.value).length;
+				    //alert(curPosNew);//TODO:remove from final product
+				    $(this).caret(curPosNew);
 				    return false;
 				}
 			});
